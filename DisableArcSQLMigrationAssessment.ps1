@@ -23,8 +23,6 @@ foreach ($sql in $sqlservers) {
     # Check if the migration assessment is enabled
     if ($currentProperties -eq $true) {
         # Disable the migration assessment
-        #az resource update --ids $sql.resourceid --set 'properties.migration.assessment.enabled=false' --api-version 2024-02-01-preview | convertfrom-json > $null 2>&1
-        # Perform the same action using Invoke-AzRestMethod
         $body = @{
             properties = @{
                  migration = @{
