@@ -23,7 +23,19 @@ foreach ($sql in $sqlservers) {
     # Check if the migration assessment is enabled
     if ($currentProperties -eq $true) {
         # Disable the migration assessment
-        az resource update --ids $sql.resourceid --set 'properties.migration.assessment.enabled=false' --api-version 2024-02-01-preview | convertfrom-json > $null 2>&1
+        #az resource update --ids $sql.resourceid --set 'properties.migration.assessment.enabled=false' --api-version 2024-02-01-preview | convertfrom-json > $null 2>&1
+        # Perform the same action using Invoke-AzRestMethod
+        $body = @{
+            properties = @{
+                 migration = @{
+                        assessment = @{
+                            enabled = $false
+                        }
+                    }
+            }
+        } | ConvertTo-Json -Depth 10
+
+        Invoke-AzRestMethod -Method PATCH -Path "/subscriptions/$($sql.SubscriptionId)/resourceGroups/$($sql.ResourceGroupName)/providers/Microsoft.AzureArcData/SqlServerInstances/$($sql.Name)?api-version=2024-02-01-preview" -Payload $body | Out-Null
 
         Write-Host "Migration Assessment Disabled on "$sql.Name
     } else {
