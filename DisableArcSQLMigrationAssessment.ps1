@@ -6,23 +6,14 @@ if (-not (Get-Module -Name Az -ListAvailable)) {
 } else {
     Write-Host "Az module is already installed."
 }
-# First step, connect to an azure account with the necessary permissions
-# This script is meant to be run from cloudshell. Uncomment this if running locally.
-#Connect-AzAccount
 
-#get-azsubscription | Select-Object name, id | out-gridview -title "Select Subscription" -PassThru | Set-AzContext
+# Get all the Azure Arc SQL server instances that have the migration assessment enabled.
+$query = "resources | where type == 'microsoft.azurearcdata/sqlserverinstances' | extend currentStatus = tobool(properties.migration.assessment.enabled) | where currentStatus == true"
 
-# Get all the Azure Arc SQL server instances in a specified resource group
-$sqlservers = get-azresource -resourcetype "Microsoft.AzureArcData/SqlServerInstances"
+$sqlservers = search-azgraph -query $query
 
 # Use Az CLI to check and disable the migration assessment for each SQL server instance
 foreach ($sql in $sqlservers) {
-    # Get the current properties of the SQL server instance
-    $currentProperties = az resource show --ids $sql.resourceid --query "properties.migration.assessment.enabled" --api-version 2024-02-01-preview | ConvertFrom-Json
-
-    # Check if the migration assessment is enabled
-    if ($currentProperties -eq $true) {
-        # Disable the migration assessment
         $body = @{
             properties = @{
                  migration = @{
@@ -30,13 +21,11 @@ foreach ($sql in $sqlservers) {
                             enabled = $false
                         }
                     }
-            }
+            }   
         } | ConvertTo-Json -Depth 10
 
-        Invoke-AzRestMethod -Method PATCH -Path "/subscriptions/$($sql.SubscriptionId)/resourceGroups/$($sql.ResourceGroupName)/providers/Microsoft.AzureArcData/SqlServerInstances/$($sql.Name)?api-version=2024-02-01-preview" -Payload $body | Out-Null
+        Invoke-AzRestMethod -Method PATCH -Path "/subscriptions/$($sql.SubscriptionId)/resourceGroups/$($sql.ResourceGroup)/providers/Microsoft.AzureArcData/SqlServerInstances/$($sql.Name)?api-version=2024-02-01-preview" -Payload $body | Out-Null
 
         Write-Host "Migration Assessment Disabled on "$sql.Name
-    } else {
-        Write-Host "Migration Assessment already disabled on "$sql.Name
-    }
+
 }
