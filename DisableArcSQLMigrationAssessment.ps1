@@ -12,7 +12,7 @@ $query = "resources | where type == 'microsoft.azurearcdata/sqlserverinstances' 
 
 $sqlservers = search-azgraph -query $query
 
-# Use Az CLI to check and disable the migration assessment for each SQL server instance
+# set the payload for the REST API query to disable the Migration Assessment
 foreach ($sql in $sqlservers) {
         $body = @{
             properties = @{
